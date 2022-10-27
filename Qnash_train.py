@@ -1,29 +1,33 @@
 import gfootball.env as football_env
 import numpy as np
 import random
+import math
 import nashpy as nash
 
-env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 )
-obs = env.reset() # states_of_agent_i = obs[agent_i] (type dic)
+
+
 nactions = 8
 discount = 1
 alpha = 0.02
-epsilon: 0.01
+epsilon =  0.01
 
 def flat_states(obs):
     """
     ball: shape(1,3)
     ball_owned_team: (int)
-    ball_owned_player: (int)
+    ball_owned_player: (int) 
     left_team: shape(nagents,2)
-    left_team_role: shape(1,nagents)
-    score: shape(1,2)
-    steps_left: (int)
+    left_team_role: shape(1,nagents) x
+    score: shape(1,2) x
+    steps_left: (int) x
 
     """
     minor_states = ['ball','ball_owned_team','ball_owned_player',
                         'left_team','left_team_roles','score','steps_left']
+
+    
     states = {state: obs[0][state] if obs[0][state] is not None else None for state in minor_states}
+ 
 
     print(states)
     new_states = []
@@ -38,24 +42,126 @@ def flat_states(obs):
           new_states.append(state)
     print(new_states)
 
-def create_q_tables(states):
-    nstates = len(states)
-    qtables1 = np.zeros((nstates, (nactions, nactions)))
-    qtables2 = np.zeros((nstates, (nactions, nactions)))
-    return qtables1, qtables2
 
-def GetPi(qtables1, qtables2, state):
+def bin_state(obs):
+    observed_states = ["ball_owned_team","ball","left_team"]
+    print("ball owned")
+    print(obs[0]["ball_owned_team"])
+    print("ball", obs[0]["ball"])
+    print("left team",obs[0]["left_team"])
+    states = {state: obs[0][state] if obs[0][state] is not None else None for state in observed_states}
+    print("states", states)
+    bins_width = np.round(np.arange(-1,1,0.2),3)
+    bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
+    bin_states = {}
+    for state, value in states.items():
+        if state == 'left_team':
+            value = value[0]
+        if type(value) == int:
+            bin_states[state] = [value,-1]
+            print("int",state)
+        else:
+            print("not int",state)
+            bin_states[state] = []
+            for bin_w in range(1,len(bins_width)-1):
+                #print("value",value[0])
+                #print("bin_w",bins_width[bin_w])
+                if value[0] < bins_width[bin_w] and value[0] >= bins_width[bin_w-1]:
+                    bin_state_w = bins_width[bin_w-1]
+                    print("w: bin_state",bin_state)
+                    continue
+            #bin_states[state].append(bin_state)
+            for bin_h in range(1,len(bins_height-1)):
+                #print("value",value)
+                #print("bin_h",bins_height[bin_h])
+                if value[1] < bins_height[bin_h] and value[1] >= bins_height[bin_h-1]:
+                    bin_state_h = bins_height[bin_h-1]
+                    print("h: bin_state",bin_state)
+                    continue
+            #bin_states[state].append(bin_state)
+            bin_states[state] = [bin_state_w, bin_state_h]
+    bin_current_state = [bin_states[s] for s in bin_states]
+    print(np.array(bin_current_state))
+    return np.array(bin_current_state)
+
+def create_q_tables():
+    bin_width = 0.2
+    bin_height = 0.1
+    ball_own = 3 # -1,0,1
+    width = 2 # 10 states [-1,1]
+    height = 1 # 5 states [-.42, 0.42]
+    W_bin = np.round(np.arange(-1,1.2,0.2), 3)
+    print(W_bin)
+    H_bin = np.round(np.arange(-0.5,0.6,0.1),3)
+    states_table = {}
+    states_table["ball_owned"] = np.array([[-1,-1],[0,-1],[1,-1]])
+    states_table["ball"] = []
+    states_table["left_team"] = []
+    states_table["action1"] = []
+    states_table["action2"] = []
+    for w in W_bin:
+        for h in H_bin:
+            print("w,h",(w,h))
+            states_table["ball"].append([w,h])
+            states_table["left_team"].append([w,h])
+    states_table["ball"] = np.array(states_table["ball"])
+    states_table["left_team"] = np.array(states_table["left_team"])
+    states_table["action1"] = np.arange(0,8,1)
+    states_table["action2"] = np.arange(0,8,1)
+    print(list(states_table.values()))
+    print(states_table["ball_owned"].shape)
+    print(states_table["ball"].shape)
+    print(states_table["left_team"].shape)
+    qtables1 = np.zeros((3,
+    W_bin.shape[0]*H_bin.shape[0],
+    W_bin.shape[0]*H_bin.shape[0],
+    nactions, nactions))
+    
+    qtables2 = np.zeros((3,
+    W_bin.shape[0]*H_bin.shape[0],
+    W_bin.shape[0]*H_bin.shape[0],
+    nactions, nactions))
+    
+    
+    print(qtables1.shape)
+    return states_table, qtables1, qtables2
+
+def find_states(states_table, states):
+    """
+    find state:
+    "ball_owned": [[-1,-1],[0, -1], [1,-1]]
+    "ball": [[-1, -0.8, -0.6,...., 0.8,1] ,[-0.5, -0.4, ... , 0.4, 0.5]] # 11 x 11
+    "left_team":    
+    bins_width = np.round(np.arange(-1,1,0.2),3)
+    bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
+    """
+    print("keys",states_table.keys())
+    find = []
+    for i, key in enumerate(list(states_table.keys())[:3]):
+        for j, s in enumerate(states_table[key]):
+            #print("s",s)
+            #print("states i ",states[i])
+            if tuple(states[i]) == tuple(s):
+                find.append([i,j])
+                print("f:",find)
+                continue
+    print("find",find)
+    return find
+
+def GetPi(qtables1, qtables2, find):
+    print("get pi find", find)
     Pi = []
     Pi_O = []
-    # iterate over rows
     for i in range(nactions):
         row_q = []
         row_opponent = []
         for j in range(nactions):
-            row_q.append(qtables1[state][(i,j)])
-            row_opponent.append(qtables2[state[(i,j)]])
+            row_q.append(qtables1[find[0], find[1], find[2], i,j])
+            row_opponent.append(qtables2[find[0], find[1], find[2], i,j])
+
         Pi.append(row_q)
         Pi_O.append(row_opponent)
+        
     nash_game = nash.Game(Pi, Pi_O)
     equilibria = nash_game.lemke_howson_enumeration()
     pi_nash = None
@@ -64,7 +170,7 @@ def GetPi(qtables1, qtables2, state):
     except:
         pi_nash_list = []
     for index, eq in enumerate(pi_nash_list):
-        if eq[0].shape == (nactions,) and eq[1].shape == (nactions, ):
+        if eq[0].shape == (nactions, ) and eq[1].shape == (nactions, ):
             if any(np.isnan(eq[0])) == False and any(np.isnan(eq[1])) == False:
                 if index != 0:
                     pi_nash = (eq[0], eq[1])
@@ -74,45 +180,76 @@ def GetPi(qtables1, qtables2, state):
         pi_nash = (np.ones(nactions)/nactions, np.ones(nactions)/nactions)
     return pi_nash[0], pi_nash[1]
 
-def computeNashQ(qtables, agent, state):
-    Pi, Pi_O = GetPi()
+def computeNashQ(qtable1, qtable2, agent, find):
+    Pi, Pi_O = GetPi(qtable1, qtable2, find)
     nashq = 0
+    print("compute q nash", find)
     for action1 in range(nactions):
         for action2 in range(nactions):
             if agent == 1:
-                nashq += Pi[state][action1] * Pi_O[state][action2] * qtables[state][(action1, action2)]
+                nashq += Pi[find[0], find[1], find[2],action1] * Pi_O[find[0], find[1], find[2], action2] * qtable1[find[0], find[1], find[2]][action1, action2]
             elif agent == 2:
-                nashq += Pi[state][action1] * Pi_O[state][action2] * qtables[state][(action1, action2)]
+                nashq += Pi[find[0], find[1], find[2],action1] * Pi_O[find[0], find[1], find[2], action2] * qtable2[find[0], find[1], find[2]][action1, action2]
             else:
                 print("error agent")
     return nashq
 
-def computeQ(qtables1, state, rewards, action1, action2):
-    for agent in range(nagents):
-        nashq = computeNashQ(qtables1,state)
-        o_value = (1-alpha) * qtables1[state,(action1, action2)]
-        m_value = alpha * (rewards[agent] + discount * nashq)
-        qtables1[state, (action1, action2)] = o_value + m_value
-    return qtables1
+def computeQ(agent, qtable1, qtable2, find, rewards, action1, action2):
+    nashq = computeNashQ(qtable1, qtable2,agent,find)
+    if agent == 1:
+         m_value = alpha * (rewards + discount * nashq)
+         o_value = (1-alpha) * qtable2[find[0], find[1], find[2],action1, action2]
+         qtable1[find[0], find[1], find[2], action1, action2] = o_value + m_value
+         return qtable1
+    else:
+        m_value = alpha * ((1-rewards) + discount * nashq)
+        o_value = (1-alpha) * qtable2[find[0], find[1], find[2],action1, action2]
+        qtable2[find[0], find[1], find[2], action1, action2] = o_value + m_value
+        return qtable2
 
-def choose_action(qtables1, state, epsilon = 0.01, agent = 1):
-    Pi, Pi_O = GetPi(qtables1, agent, state)
+def choose_action(qtable1, qtable2, states_table, states, epsilon = 0.01, agent = 1):
+    print(states)
+    find = find_states(states_table, states)
+    Pi, Pi_O = GetPi(qtable1, qtable2, find)
     if random.random() <= epsilon:
         action_idx = random.choice(0,nactions-1)
     else:
         action_idx = random.choice(np.flatnonzero(Pi == Pi.max()))
     return action_idx
 
-state = env.reset()
+
+#%%
+print("start")
+env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 )
+obs = env.reset() # states_of_agent_i = obs[agent_i] (type dic)
+#states = flat_states(obs)
+states_table, qtable1, qtable2 = create_q_tables()
+bin_states = bin_state(obs)
+steps = 0
+while steps <= 1000:
+    if steps == 0:
+        action1 = env.action_space.sample()
+        action2 = env.action_space.sample()
+        print("action1: {}; action2: {}", action1, action2)
+    else:
+        find = find_states(states_table,bin_states)
+        action1 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 1)
+        action2 = choose_action(qtable2, qtable2, bin_states, epsilon, 2)
+        print("action1: {}; action2: {}", action1, action2)
+    obs, reward, info, done = env.step(action1)
+    print(obs)
+    #states = flat_states(obs)
+    bin_states = bin_state(obs)
+    find = find_states(states_table, bin_states)
+    # update
+    qtable1 = computeQ(1, qtable1, qtable2, find, reward,action1,action2) 
+    qtable2 = computeQ(2, qtable2, qtable2, find, reward,action1,action2)
+    steps += 1
+
+
 
 steps = 0
-while True:
-  obs, rew, done, info = env.step(env.action_space.sample())
-  steps += 1
-  if steps % 100 == 0:
-    print(obs, rew, done, info)
-  if done:
-    break
+bin_states = bin_state(obs)
 
-print("Steps: %d Reward: %.2f" % (steps, rew))
+
 
