@@ -138,20 +138,20 @@ def flip_single_action(action, config):
       football_action_set.get_action_set(config), action)
   if action == football_action_set.action_left:
     return football_action_set.action_right
-  # if action == football_action_set.action_top_left:
-  #   return football_action_set.action_bottom_right
+  if action == football_action_set.action_top_left:
+    return football_action_set.action_bottom_right
   if action == football_action_set.action_top:
     return football_action_set.action_bottom
-  # if action == football_action_set.action_top_right:
-  #   return football_action_set.action_bottom_left
+  if action == football_action_set.action_top_right:
+    return football_action_set.action_bottom_left
   if action == football_action_set.action_right:
     return football_action_set.action_left
-  # if action == football_action_set.action_bottom_right:
-  #   return football_action_set.action_top_left
+  if action == football_action_set.action_bottom_right:
+    return football_action_set.action_top_left
   if action == football_action_set.action_bottom:
     return football_action_set.action_top
-  # if action == football_action_set.action_bottom_left:
-  #   return football_action_set.action_top_right
+  if action == football_action_set.action_bottom_left:
+    return football_action_set.action_top_right
   return action
 
 
