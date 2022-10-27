@@ -126,17 +126,13 @@ action_release_dribble = CoreAction(e_BackendAction.release_dribble,
                                     "release_dribble")
 
 # ***** Define some action sets *****
-# action_set_v1 = [
-#     action_idle, action_left, action_top_left, action_top,
-#     action_top_right, action_right, action_bottom_right,
-#     action_bottom, action_bottom_left, action_long_pass,
-#     action_high_pass, action_short_pass, action_shot,
-#     action_sprint, action_release_direction, action_release_sprint,
-#     action_sliding, action_dribble, action_release_dribble]
 action_set_v1 = [
-    action_left, action_top, action_keeper_rush,
-    action_right, action_bottom, action_release_direction,
-    action_short_pass, action_shot]
+    action_idle, action_left, action_top_left, action_top,
+    action_top_right, action_right, action_bottom_right,
+    action_bottom, action_bottom_left, action_long_pass,
+    action_high_pass, action_short_pass, action_shot,
+    action_sprint, action_release_direction, action_release_sprint,
+    action_sliding, action_dribble, action_release_dribble]
 
 action_set_v2 = action_set_v1 + [action_builtin_ai]
 
