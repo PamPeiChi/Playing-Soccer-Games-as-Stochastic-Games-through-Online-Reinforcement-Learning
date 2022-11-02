@@ -63,26 +63,33 @@ def bin_state(obs):
         else:
             print("not int",state)
             bin_states[state] = []
-            for bin_w in range(1,len(bins_width)-1):
-                #print("value",value[0])
-                #print("bin_w",bins_width[bin_w])
+            for bin_w in range(1,len(bins_width)):
+                if bins_width[0] > value[0]:
+                    print("width out of bound",value[0])
+                    bin_state_w = bins_width[0]
+                    break
                 if value[0] < bins_width[bin_w] and value[0] >= bins_width[bin_w-1]:
                     bin_state_w = bins_width[bin_w-1]
-                    print("w: bin_state",bin_state)
-                    continue
-            #bin_states[state].append(bin_state)
-            for bin_h in range(1,len(bins_height-1)):
-                #print("value",value)
-                #print("bin_h",bins_height[bin_h])
+                    print("w: bin_state",bin_state_w)
+                    break
+                
+            for bin_h in range(1,len(bins_height)):
+                if bins_height[0] > value[1]:
+                    print("height out of bound",value[1])
+                    bin_state_h = bins_height[1]
+                    bin_states[state] = [bin_state_w, bin_state_h]
+                    break
                 if value[1] < bins_height[bin_h] and value[1] >= bins_height[bin_h-1]:
                     bin_state_h = bins_height[bin_h-1]
-                    print("h: bin_state",bin_state)
-                    continue
-            #bin_states[state].append(bin_state)
+                    print("h: bin_state",bin_state_h)
+                    break
             bin_states[state] = [bin_state_w, bin_state_h]
+                    
+
+                
     bin_current_state = [bin_states[s] for s in bin_states]
-    print(np.array(bin_current_state))
-    return np.array(bin_current_state)
+    print("bin current state", bin_current_state)
+    return bin_current_state
 
 def create_q_tables():
     bin_width = 0.2
@@ -90,7 +97,7 @@ def create_q_tables():
     ball_own = 3 # -1,0,1
     width = 2 # 10 states [-1,1]
     height = 1 # 5 states [-.42, 0.42]
-    W_bin = np.round(np.arange(-1,1.2,0.2), 3)
+    W_bin = np.round(np.arange(-1.2,1.2,0.2), 3)
     print(W_bin)
     H_bin = np.round(np.arange(-0.5,0.6,0.1),3)
     states_table = {}
@@ -135,7 +142,7 @@ def find_states(states_table, states):
     bins_width = np.round(np.arange(-1,1,0.2),3)
     bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
     """
-    print("keys",states_table.keys())
+
     find = []
     for i, key in enumerate(list(states_table.keys())[:3]):
         for j, s in enumerate(states_table[key]):
@@ -187,22 +194,24 @@ def computeNashQ(qtable1, qtable2, agent, find):
     for action1 in range(nactions):
         for action2 in range(nactions):
             if agent == 1:
-                nashq += Pi[find[0], find[1], find[2],action1] * Pi_O[find[0], find[1], find[2], action2] * qtable1[find[0], find[1], find[2]][action1, action2]
+                nashq += Pi[action1] * Pi_O[action2] * qtable1[find[0], find[1], find[2], action1, action2]
             elif agent == 2:
-                nashq += Pi[find[0], find[1], find[2],action1] * Pi_O[find[0], find[1], find[2], action2] * qtable2[find[0], find[1], find[2]][action1, action2]
+                nashq += Pi[action1] * Pi_O[action2] * qtable2[find[0], find[1], find[2], action1, action2]
             else:
                 print("error agent")
     return nashq
 
 def computeQ(agent, qtable1, qtable2, find, rewards, action1, action2):
     nashq = computeNashQ(qtable1, qtable2,agent,find)
+    print("compute q find", find)
+    print(qtable1.shape)
     if agent == 1:
          m_value = alpha * (rewards + discount * nashq)
-         o_value = (1-alpha) * qtable2[find[0], find[1], find[2],action1, action2]
+         o_value = (1-alpha) * qtable1[find[0], find[1], find[2],action1, action2]
          qtable1[find[0], find[1], find[2], action1, action2] = o_value + m_value
          return qtable1
     else:
-        m_value = alpha * ((1-rewards) + discount * nashq)
+        m_value = alpha * ((-rewards) + discount * nashq)
         o_value = (1-alpha) * qtable2[find[0], find[1], find[2],action1, action2]
         qtable2[find[0], find[1], find[2], action1, action2] = o_value + m_value
         return qtable2
@@ -211,10 +220,17 @@ def choose_action(qtable1, qtable2, states_table, states, epsilon = 0.01, agent 
     print(states)
     find = find_states(states_table, states)
     Pi, Pi_O = GetPi(qtable1, qtable2, find)
+    print("pi shape ",Pi.shape)
+    
     if random.random() <= epsilon:
-        action_idx = random.choice(0,nactions-1)
+        print("random_action")
+        action_idx = random.randint(0,nactions-1)
+        print(action_idx)
     else:
+        print("best action")
+        print("Pi",Pi)
         action_idx = random.choice(np.flatnonzero(Pi == Pi.max()))
+        print(action_idx)
     return action_idx
 
 
@@ -227,17 +243,12 @@ states_table, qtable1, qtable2 = create_q_tables()
 bin_states = bin_state(obs)
 steps = 0
 while steps <= 1000:
-    if steps == 0:
-        action1 = env.action_space.sample()
-        action2 = env.action_space.sample()
-        print("action1: {}; action2: {}", action1, action2)
-    else:
-        find = find_states(states_table,bin_states)
-        action1 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 1)
-        action2 = choose_action(qtable2, qtable2, bin_states, epsilon, 2)
-        print("action1: {}; action2: {}", action1, action2)
+    find = find_states(states_table,bin_states)
+    action1 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 1)
+    action2 = choose_action(qtable2, qtable2, states_table, bin_states, epsilon, 2)
+    print("action1: {}; action2: {}", action1, action2)
     obs, reward, info, done = env.step(action1)
-    print(obs)
+    print("reward",reward)
     #states = flat_states(obs)
     bin_states = bin_state(obs)
     find = find_states(states_table, bin_states)
@@ -245,11 +256,6 @@ while steps <= 1000:
     qtable1 = computeQ(1, qtable1, qtable2, find, reward,action1,action2) 
     qtable2 = computeQ(2, qtable2, qtable2, find, reward,action1,action2)
     steps += 1
-
-
-
-steps = 0
-bin_states = bin_state(obs)
 
 
 
