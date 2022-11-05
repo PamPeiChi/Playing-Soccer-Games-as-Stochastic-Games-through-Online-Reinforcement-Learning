@@ -28,6 +28,8 @@ def _process_reward_wrappers(env, rewards):
   assert 'scoring' in rewards.split(',')
   if 'checkpoints' in rewards.split(','):
     env = wrappers.CheckpointRewardWrapper(env)
+  if 'easy' in rewards.split(','):
+    env = wrappers.EasyRewardWrapper(env)
   return env
 
 
