@@ -51,7 +51,7 @@ def bin_state(obs):
     print("left team",obs[0]["left_team"])
     states = {state: obs[0][state] if obs[0][state] is not None else None for state in observed_states}
     print("states", states)
-    bins_width = np.round(np.arange(-1,1,0.2),3)
+    bins_width = np.round(np.arange(-1.2,1,0.2),3)
     bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
     bin_states = {}
     for state, value in states.items():
@@ -236,25 +236,31 @@ def choose_action(qtable1, qtable2, states_table, states, epsilon = 0.01, agent 
 
 #%%
 print("start")
-env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 )
+env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "checkpoints,scoring")
 obs = env.reset() # states_of_agent_i = obs[agent_i] (type dic)
 #states = flat_states(obs)
 states_table, qtable1, qtable2 = create_q_tables()
 bin_states = bin_state(obs)
 steps = 0
+accu_reward = 0
 while steps <= 1000:
     find = find_states(states_table,bin_states)
     action1 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 1)
-    action2 = choose_action(qtable2, qtable2, states_table, bin_states, epsilon, 2)
+    action2 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 2)
     print("action1: {}; action2: {}", action1, action2)
-    obs, reward, info, done = env.step(action1)
-    print("reward",reward)
+    obs, reward, done, info = env.step(action1)
+    if done:
+        break
+    accu_reward += reward
+    print("acc_reward",accu_reward)
     #states = flat_states(obs)
     bin_states = bin_state(obs)
     find = find_states(states_table, bin_states)
     # update
     qtable1 = computeQ(1, qtable1, qtable2, find, reward,action1,action2) 
     qtable2 = computeQ(2, qtable2, qtable2, find, reward,action1,action2)
+    print("qtable1",qtable1)
+    print("qtable2",qtable2)
     steps += 1
 
 
