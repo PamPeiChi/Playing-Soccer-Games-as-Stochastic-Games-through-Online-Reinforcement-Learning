@@ -68,7 +68,7 @@ def UCSG(n_states, n_actions, T, delta):
             yield(t, st, ac, next_st, reward)
 
             #update
-            vk[st, ac] =  vk[st, ac] + 1 #update vk(s, a)
+            vk[st, ac] =  vk[st, ac] + 1 #update vk(s,a)
             total_rewards[st,ac] += reward # 即時reward
             nk[st, ac] = max(1,  nk[st, ac] + 1) #update nk(s,a)
             t += 1 
