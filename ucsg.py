@@ -61,7 +61,7 @@ def UCSG(n_states, n_actions, T, delta):
         #Optimistic Planning
         pi1_k, m_k = evi(n_states, n_actions, p_hat, confidence_bound_1, r_hat, confidence_bound_2, 1 / np.sqrt(t_k))
         
-        #execute policies
+        #execute policy
         ac = pi1_k[st]
         while(vk[st,ac] != total_numbers[st,ac]):
             next_st, reward, done, info= env.step()
