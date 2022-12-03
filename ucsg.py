@@ -59,7 +59,6 @@ def UCSG(n_states, n_actions, T, delta):
         confidence_bound_2_2 = np.clip(np.sqrt(np.log(6/delta_1)/(2*n_states))+p_hat, None, np.sqrt(2*p_hat*(1-p_hat)*np.log(6/delta_1)/n_states) + 7*np.log(6/delta_1)/(3*(n_states-1))+p_hat)
         #confidence_bound_2_2 = np.clip(confidence_bound_2_2, 0, 1)
         a = np.sqrt(2*np.log(6/delta_1)/(n_states-1))
-
         b = np.sqrt(p_hat*(1-p_hat))
         c1 = (a+b)**2
         c2 = (a-b)**2
