@@ -2,6 +2,8 @@ import itertools
 import math
 from tkinter import N
 import numpy as np
+import sympy 
+from sympy import *
 import gfootball.env as football_env
 
 env = football_env.create_environment(env_name='5_vs_5', representation='pixels', render='True', number_of_left_players_agent_controls=5 )
@@ -29,7 +31,6 @@ def inner_maximization(p_sa_hat, confidence_bound_p_sa, rank):
 
 
 
-
 def UCSG(n_states, n_actions, T, delta):
     t = 1
     # Initial state
@@ -48,18 +49,33 @@ def UCSG(n_states, n_actions, T, delta):
         # delta:我們自己設定的容許誤差值    
         delta_1 = delta/(2*n_states*n_states*n_actions*np.log2(T))
         p_hat = vk.reshape((n_states, n_actions, 1))/n_states  #拆解
+        r_hat = total_rewards / np.clip(vk, 1, None)
+        upper_conf = 1
+        lower_conf = 0
 
         # Update the confidence set
-        confidence_bound_1 = np.clip(np.sqrt((2*n_states*np.log(1/delta)/n_states)), 0, 1) 
-        p_tilde = confidence_bound_1 + p_hat
-        #???
-        confidence_bound_2_2 = min(np.sqrt(np.log(6/delta_1)/(2*n_states)), np.sqrt(2*p_hat*(1-p_hat)*np.log(6/delta_1)/n_states) + 7*np.log(6/delta_1)/(3*(n_states-1)))
-        confidence_bound_2_1 = np.sqrt(2*np.log(6/delta_1)/(n_states-1))
+        #confidence_bound_1 = np.clip(np.sqrt((2*n_states*np.log(1/delta)/n_states))+ p_hat, 0, 1)         
+        confidence_bound_1 = np.sqrt((2*n_states*np.log(1/delta)/n_states))+ p_hat
+        confidence_bound_2_2 = np.clip(np.sqrt(np.log(6/delta_1)/(2*n_states))+p_hat, None, np.sqrt(2*p_hat*(1-p_hat)*np.log(6/delta_1)/n_states) + 7*np.log(6/delta_1)/(3*(n_states-1))+p_hat)
+        #confidence_bound_2_2 = np.clip(confidence_bound_2_2, 0, 1)
+        a = np.sqrt(2*np.log(6/delta_1)/(n_states-1))
 
+        b = np.sqrt(p_hat*(1-p_hat))
+        c1 = (a+b)**2
+        c2 = (a-b)**2
+        xr = np.clip((1+np.sqrt(1-4*c1))/2, (1-np.sqrt(1-4*c1))/2, 1)
+        xl = np.clip((1+np.sqrt(1-4*c2))/2, 0 ,(1-np.sqrt(1-4*c2))/2)
+        confidence_bound_2_1 = np.clip(xr, 0 ,xl)
+        tmp = confidence_bound_1 + confidence_bound_2_2
+        #print('confidencebound1', confidence_bound_1)
+        #print('confidencebound2', confidence_bound_2_2)
+        confidencebound = [ (tmp[i]) for i in range(0, len(tmp)) if tmp[i] not in tmp[:i] ]
+        #print('confbound', confidencebound)        
         
+
         # alpha, gamma
         #Optimistic Planning
-        pi1_k, m_k = evi(n_states, n_actions, p_hat, confidence_bound_1, r_hat, confidence_bound_2, 1 / np.sqrt(t_k))
+        pi1_k, m_k = evi()
         
         #execute policy
         ac = pi1_k[st]
