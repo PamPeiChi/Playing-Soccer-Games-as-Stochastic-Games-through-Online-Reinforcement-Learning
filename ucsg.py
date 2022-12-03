@@ -75,6 +75,7 @@ def UCSG(n_states, n_actions, T, delta):
         #Optimistic Planning
         pi1_k, m_k = evi()
         
+        
         #execute policy
         ac = pi1_k[st]
         while(vk[st,ac] != total_numbers[st,ac]):
