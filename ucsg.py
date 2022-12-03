@@ -70,7 +70,6 @@ def UCSG(n_states, n_actions, T, delta):
         #print('confidencebound2', confidence_bound_2_2)
         confidencebound = [ (tmp[i]) for i in range(0, len(tmp)) if tmp[i] not in tmp[:i] ]
         #print('confbound', confidencebound)        
-        
 
         # alpha, gamma
         #Optimistic Planning
