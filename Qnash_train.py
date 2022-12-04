@@ -3,7 +3,7 @@ import numpy as np
 import random
 import math
 import nashpy as nash
-
+from Env_discrete import simplify
 
 
 nactions = 8
@@ -240,7 +240,9 @@ env = football_env.create_environment(env_name='1_vs_1_easy', representation='ra
 obs = env.reset() # states_of_agent_i = obs[agent_i] (type dic)
 #states = flat_states(obs)
 states_table, qtable1, qtable2 = create_q_tables()
-bin_states = bin_state(obs)
+# bin_states = bin_state(obs)
+bin_states = simplify(obs)
+
 steps = 0
 accu_reward = 0
 while steps <= 20000000:
@@ -254,7 +256,9 @@ while steps <= 20000000:
     accu_reward += reward
     print("acc_reward",accu_reward)
     #states = flat_states(obs)
-    bin_states = bin_state(obs)
+    # bin_states = bin_state(obs)
+    in_states = simplify(obs)
+
     find = find_states(states_table, bin_states)
     # update
     qtable1 = computeQ(1, qtable1, qtable2, find, reward,action1,action2) 
