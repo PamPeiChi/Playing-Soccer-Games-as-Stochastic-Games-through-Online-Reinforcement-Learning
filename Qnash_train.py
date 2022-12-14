@@ -3,6 +3,7 @@ import numpy as np
 import random
 import math
 import nashpy as nash
+import matplotlib.pyplot as plt
 from Env_discrete import simplify
 
 
@@ -236,7 +237,7 @@ def choose_action(qtable1, qtable2, states_table, states, epsilon = 0.01, agent 
 
 #%%
 print("start")
-env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "checkpoints,scoring")
+env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "easy,scoring")
 obs = env.reset() # states_of_agent_i = obs[agent_i] (type dic)
 #states = flat_states(obs)
 states_table, qtable1, qtable2 = create_q_tables()
@@ -245,7 +246,9 @@ bin_states = simplify(obs)
 
 steps = 0
 accu_reward = 0
-while steps <= 20000000:
+draw_reward = []
+draw_step = []
+while steps <= 2000:
     find = find_states(states_table,bin_states)
     action1 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 1)
     action2 = choose_action(qtable1, qtable2, states_table, bin_states, epsilon, 2)
@@ -266,6 +269,15 @@ while steps <= 20000000:
     print("qtable1",qtable1)
     print("qtable2",qtable2)
     steps += 1
+    if(steps%100==0):
+        draw_step.append(steps)
+        draw_reward.append(accu_reward)
 
+print("steps", draw_step)
+plt.plot(draw_step,draw_reward)
+plt.title("Qnash Reward Convergence Rate") # title
+plt.xlabel("Steps") # y label
+plt.ylabel("Reward") # x label
+plt.show()
 
 
