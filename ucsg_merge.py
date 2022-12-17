@@ -262,7 +262,7 @@ def inner_maximization(p_sa_hat, confidence_bound_p_sa, rank):
     return p_sa
 
 
-def maxminevi(states, actions, gamma, alpha, I, total_rewards, Pk): # I是總共有I個vi
+def maxminevi(states, actions, gamma, alpha, I, total_rewards, Pk, st_i): # I是總共有I個vi, Pk是三維的array, st_i是現在state的index
     v = np.zeros((I, len(states))) # 計算v0
 
     # 計算v1
@@ -277,40 +277,50 @@ def maxminevi(states, actions, gamma, alpha, I, total_rewards, Pk): # I是總共
         v[1][s] = (1-alpha) * val + alpha * v[0][s]
 
     i = 2
-    print((max(v[i]) - min(v[i-1])) - (min(v[i]) - max(v[i-1])))
-    while ((max(v[i]) - min(v[i-1])) - (min(v[i]) - max(v[i-1]))) <= (1 - alpha) * gamma: 
-        Max_a = {}
+    # print((max(v[i]) - min(v[i-1])) - (min(v[i]) - max(v[i-1])))
+    while ((max(v[i]) - min(v[i-1])) - (min(v[i]) - max(v[i-1]))) > (1 - alpha) * gamma: 
+
+        # 選一個Pk(s,a)讓值最大。Pk(s,a)是一個一維array
+        Max_in = -1
         for s in range(len(states)):
-            Max = -1
             for a in range(len(actions)):
-                Sum = sum(Pk[s][a])
-                if Sum > Max:
-                    Max = Sum
-                    Max_a[s] = a
-            val = total_rewards[s, Max_a[s]] + Max
+                Sum = 0
+                for next_s in range(len(states)):
+                    Sum += Pk[s][a][next_s] * v[i-1][next_s]
+                if Sum > Max_in:
+                    Max_in = Sum
+                    Max_in_Pk_s = s
+                    Max_in_Pk_a = a
+        
+        # 每個state都選一個action讓值最大
+        for s in range(len(states)):
+            Max_out = -999
+            for a in range(len(actions)):
+                val = total_rewards[s, a] + Max_in
+                if val > Max_out:
+                    Max_out = val
+                    if st_i == s:
+                        Max_out_a = a
+                        choose_action = Max_out_a
             v[i][s] = (1-alpha) * val + alpha * v[i-1][s]
+
         i += 1
         if i == I:
             i -= 1
             break
-
-    Max_vi = -999
-    for s in range(len(states)):
-        if v[i][s] > Max_vi:
-            Max_vi = v[i][s]
-            try:
-                choose_action = Max_a[s]
-            except:
-                print("error")
-                choose_action = random.randint(0, len(actions)-1)
-                break
-    
-    ran = random.randint(1, 6)
-    if ran == 1:
+    try:
+        return actions[choose_action]
+    except: # 一開始可能不會進到前面的while迴圈，所以直接回傳random的action
+        print('!')
         action_i = random.randint(0, len(actions)-1)
         return actions[action_i]
-    else:
-        return actions[choose_action]
+
+    # ran = random.randint(1, 6)
+    # if ran == 1:
+    #     action_i = random.randint(0, len(actions)-1)
+    #     return actions[action_i]
+    # else:
+    #     return actions[choose_action]
 
 
 
@@ -361,7 +371,7 @@ def UCSG(states, actions, T, delta):
         # alpha, gamma
         #Optimistic Planning
         print('maxminevi')
-        ac = maxminevi(states, actions, 0.8, 0.8, 100, total_rewards, confidence_bound_2_2)
+        ac = maxminevi(states, actions, 0.8, 0.8, 100, total_rewards, confidence_bound_2_2, st_i)
 
         #execute policy
         next_st, reward, done, info= env.step(ac)
