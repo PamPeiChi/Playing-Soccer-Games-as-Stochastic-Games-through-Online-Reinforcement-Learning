@@ -27,12 +27,12 @@ def simplify(obs):
     # print("[state]", state)
     # return state
     observed_states = ["ball_owned_team","ball","left_team"]
-    print("ball owned")
-    print(obs[0]["ball_owned_team"])
-    print("ball", obs[0]["ball"])
-    print("left team",obs[0]["left_team"])
+    # print("ball owned")
+    # print(obs[0]["ball_owned_team"])
+    # print("ball", obs[0]["ball"])
+    # print("left team",obs[0]["left_team"])
     states = {state: obs[0][state] if obs[0][state] is not None else None for state in observed_states}
-    print("states", states)
+    # print("states", states)
     bins_width = np.round(np.arange(-1.2,1,0.2),3)
     bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
     bin_states = {}
@@ -41,36 +41,36 @@ def simplify(obs):
             value = value[0]
         if type(value) == int:
             bin_states[state] = [value,-1]
-            print("int",state)
+            # print("int",state)
         else:
-            print("not int",state)
+            # print("not int",state)
             bin_states[state] = []
             for bin_w in range(1,len(bins_width)):
                 if bins_width[0] > value[0]:
-                    print("width out of bound",value[0])
+                    # print("width out of bound",value[0])
                     bin_state_w = bins_width[0]
                     break
                 if value[0] < bins_width[bin_w] and value[0] >= bins_width[bin_w-1]:
                     bin_state_w = bins_width[bin_w-1]
-                    print("w: bin_state",bin_state_w)
+                    # print("w: bin_state",bin_state_w)
                     break
                 
             for bin_h in range(1,len(bins_height)):
                 if bins_height[0] > value[1]:
-                    print("height out of bound",value[1])
+                    # print("height out of bound",value[1])
                     bin_state_h = bins_height[1]
                     bin_states[state] = [bin_state_w, bin_state_h]
                     break
                 if value[1] < bins_height[bin_h] and value[1] >= bins_height[bin_h-1]:
                     bin_state_h = bins_height[bin_h-1]
-                    print("h: bin_state",bin_state_h)
+                    # print("h: bin_state",bin_state_h)
                     break
             bin_states[state] = [bin_state_w, bin_state_h]
                     
 
                 
     bin_current_state = [bin_states[s] for s in bin_states]
-    print("bin current state", bin_current_state)
+    # print("bin current state", bin_current_state)
     return bin_current_state
 
 # ans = simplify(obs, 0.0005)

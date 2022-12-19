@@ -317,29 +317,29 @@ class EasyRewardWrapper(gym.RewardWrapper):
           o['ball_owned_player'] != o['active']):
         continue
 
-      # while (self._collected_checkpoints.get(rew_index, 0) <
-      #        self._num_checkpoints):
-      #   x = o['left_team'][rew_index][0]
-      #   if x < -0.2:
-      #     break
-      #   reward[rew_index] += self._checkpoint_reward
-      #   self._collected_checkpoints[rew_index] = (
-      #       self._collected_checkpoints.get(rew_index, 0) + 1)
-      
-
-      d = ((o['ball'][0] - 1) ** 2 + o['ball'][1] ** 2) ** 0.5
       while (self._collected_checkpoints.get(rew_index, 0) <
              self._num_checkpoints):
-        if self._num_checkpoints == 1:
-          threshold = 0.99 - 0.8
-        else:
-          threshold = (1.02 - 0.8 / (self._num_checkpoints - 1) *
-                       self._collected_checkpoints.get(rew_index, 0))
-        if d > threshold:
+        x = o['left_team'][rew_index][0]
+        if x < -0.5:
           break
         reward[rew_index] += self._checkpoint_reward
         self._collected_checkpoints[rew_index] = (
             self._collected_checkpoints.get(rew_index, 0) + 1)
+      
+
+      # d = ((o['ball'][0] - 1) ** 2 + o['ball'][1] ** 2) ** 0.5
+      # while (self._collected_checkpoints.get(rew_index, 0) <
+      #        self._num_checkpoints):
+      #   if self._num_checkpoints == 1:
+      #     threshold = 0.99 - 0.8
+      #   else:
+      #     threshold = (1.02 - 0.8 / (self._num_checkpoints - 1) *
+      #                  self._collected_checkpoints.get(rew_index, 0))
+      #   if d > threshold:
+      #     break
+      #   reward[rew_index] += self._checkpoint_reward
+      #   self._collected_checkpoints[rew_index] = (
+      #       self._collected_checkpoints.get(rew_index, 0) + 1)
     return reward
 
 class CheckpointRewardWrapper(gym.RewardWrapper):

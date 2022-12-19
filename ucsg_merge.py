@@ -238,6 +238,9 @@ import numpy as np
 import gfootball.env as football_env
 import random
 from gfootball.env import football_action_set
+from Env_discrete import simplify
+import matplotlib.pyplot as plt
+from itertools import permutations
 
 
 # initial phase
@@ -294,7 +297,7 @@ def maxminevi(states, actions, gamma, alpha, I, total_rewards, Pk, st_i): # I是
         
         # 每個state都選一個action讓值最大
         for s in range(len(states)):
-            Max_out = -999
+            Max_out = -1
             for a in range(len(actions)):
                 val = total_rewards[s, a] + Max_in
                 if val > Max_out:
@@ -322,6 +325,13 @@ def maxminevi(states, actions, gamma, alpha, I, total_rewards, Pk, st_i): # I是
     # else:
     #     return actions[choose_action]
 
+def find_state_id(all_state, state):
+    for i in range(len(all_state)):
+        if (np.array(all_state[i]) == np.array(state)).all():
+            return i
+    print('error')
+
+
 
 
 
@@ -334,9 +344,14 @@ def UCSG(states, actions, T, delta):
     nk = np.ones((len(states), len(actions))) #nk(s,a)
     #initial state
     #只能控制一人!!
-    env = football_env.create_environment(env_name='5_vs_5', representation='pixels', render='True', number_of_left_players_agent_controls=1 )
+    env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "easy,scoring")
     st = env.reset()
-    st_i = 0 #!!
+    bin_st = simplify(st) #  [[-1, -1], [-0.0, -0.0], [-1.2, -0.0]]
+    st_i = find_state_id(states, st)
+    # st_i = 0 #!!
+    accu_reward = 0
+    draw_reward = []
+    draw_step = []
     # Initialize phase k
     for k in range(T):
         t_k = t
@@ -371,11 +386,17 @@ def UCSG(states, actions, T, delta):
         # alpha, gamma
         #Optimistic Planning
         print('maxminevi')
-        ac = maxminevi(states, actions, 0.8, 0.8, 100, total_rewards, confidence_bound_2_2, st_i)
+        ac = maxminevi(states, actions, 0.01, 0.9, 100, total_rewards, confidence_bound_2_2, st_i)
+        print('ac', ac)
 
         #execute policy
         next_st, reward, done, info= env.step(ac)
-        next_st_i = random.randint(0, len(states)-1) #!!
+        # next_st, reward, done, info= env.step([0,1,2,3,4]) # 5人
+        if done:
+            print('step', k)
+            break
+        # next_st_i = random.randint(0, len(states)-1) #!!
+        next_st_i = find_state_id(states, next_st)
         # yield(t, st, ac, next_st, reward)
 
 
@@ -383,22 +404,80 @@ def UCSG(states, actions, T, delta):
         for a in range(len(actions)):
             if ac == actions[a]:
                 ac_i = a
+
+        # 5人
+        # for a in range(len(actions)):
+        #     flag = 0
+        #     for b in range(len(ac)):
+        #         if ac[b] != actions[a][b]:
+        #             flag = 1
+        #             break
+        #     if flag == 0:
+        #         ac_i = a
+
         vk[st_i, ac_i] =  vk[st_i, ac_i] + 1 #update vk(s,a)
         total_rewards[st_i,ac_i] += reward # 即時reward
+        # total_rewards[st_i,ac_i] += sum(reward) # 5人
+        accu_reward += reward
         nk[st_i, ac_i] = max(1,  nk[st_i, ac_i] + 1) #update nk(s,a)
         total_numbers[st_i, ac_i, next_st_i] += 1 #update nk(s, a, s')
+        st_i = next_st_i
         # t += 1 
-        # st = next_st
+        if(k % 100 == 0):
+            draw_step.append(k)
+            draw_reward.append(accu_reward)
+    print('accumulate reward:', accu_reward)
 
+    print("steps", draw_step)
+    plt.plot(draw_step,draw_reward)
+    plt.title("UCSG Reward Convergence Rate") # title
+    plt.xlabel("Steps") # y label
+    plt.ylabel("Reward") # x label
+    plt.show()
 
 
 
 if __name__ == '__main__':
+    bins_width = np.round(np.arange(-1.2,1,0.2),3)
+    bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
+    # print(bins_width)
+    # print(bins_height)
+
+    all_position = []
+    for i in range(len(bins_width)):
+        for j in range(len(bins_height)):
+            all_position.append([bins_width[i],bins_height[j]])
+
+    # 共有 1294920 種狀態
+    all_state = list(permutations(all_position,3))
+    # e.g. 第一種狀態:  [[-1.2, -0.5], [-1.2, -0.4], [-1.2, -0.3]]
+    # print(list(all_state[0])) # 原本是tuple 若需陣列則轉為list 
+    # print(all_state)
+
     # states = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10']
     states = ['s1', 's2', 's3', 's4', 's5']
     actions = football_action_set.get_action_set({'action_set': 'default'})
     # actions = ['a1', 'a2', 'a3']
-    T = 100
+
+    # 5人
+    # oneplayer_actions = football_action_set.get_action_set({'action_set': 'default'})
+    # actions = np.zeros((len(oneplayer_actions)**5, 5))
+    # i = 0
+    # for a1 in range(len(oneplayer_actions)):
+    #     for a2 in range(len(oneplayer_actions)):
+    #         for a3 in range(len(oneplayer_actions)):
+    #             for a4 in range(len(oneplayer_actions)):
+    #                 for a5 in range(len(oneplayer_actions)):
+    #                     actions[i] = [a1, a2, a3, a4, a5]
+    #                     i += 1
+
+    T = 1000
     delta = 0.5
-    UCSG(states, actions, T, delta)
+    # UCSG(states, actions, T, delta)
+    UCSG(all_state, actions, T, delta)
+
+    # print(len(all_state))
+    # s = [[-1.2, -0.5], [-0.8, -0.1], [-0.4, 0.2]]
+    # print('id:', find_state_id(all_state, s))
+    # total_numbers = np.zeros((1294920, 19, 1294920), dtype='float16')
 
