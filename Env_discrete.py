@@ -33,8 +33,8 @@ def simplify(obs):
     # print("left team",obs[0]["left_team"])
     states = {state: obs[0][state] if obs[0][state] is not None else None for state in observed_states}
     # print("states", states)
-    bins_width = np.round(np.arange(-1.2,1,0.2),3)
-    bins_height = np.round(np.arange(-0.5,0.5,0.1),3)
+    bins_width = np.round(np.arange(-1.2,1.3,0.6),3)
+    bins_height = np.round(np.arange(-1,1.1,2),3)
     bin_states = {}
     for state, value in states.items():
         if state == 'left_team':

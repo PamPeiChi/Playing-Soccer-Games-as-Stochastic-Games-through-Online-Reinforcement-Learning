@@ -278,7 +278,7 @@ class EasyRewardWrapper(gym.RewardWrapper):
   def __init__(self, env):
     gym.RewardWrapper.__init__(self, env)
     self._collected_checkpoints = {}
-    self._num_checkpoints = 10
+    self._num_checkpoints = 30
     self._checkpoint_reward = 0.1
 
   def reset(self):
@@ -320,7 +320,12 @@ class EasyRewardWrapper(gym.RewardWrapper):
       while (self._collected_checkpoints.get(rew_index, 0) <
              self._num_checkpoints):
         x = o['left_team'][rew_index][0]
-        if x < -0.5:
+        if x < -0.3:
+          break
+        reward[rew_index] += self._checkpoint_reward
+        self._collected_checkpoints[rew_index] = (
+            self._collected_checkpoints.get(rew_index, 0) + 1)
+        if x < 0.5:
           break
         reward[rew_index] += self._checkpoint_reward
         self._collected_checkpoints[rew_index] = (
