@@ -369,7 +369,7 @@ def UCSG(states, actions, T, delta):
     nk = np.ones((len(states), len(actions)), dtype='float16') #nk(s,a)
     #initial state
     #只能控制一人!!
-    env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "easy,scoring")
+    env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "checkpoints,scoring")
     st = env.reset()
     bin_st = simplify(st) #  [[-1, -1], [-0.0, -0.0], [-1.2, -0.0]]
     new_st = bin_st[0]
@@ -378,8 +378,8 @@ def UCSG(states, actions, T, delta):
     accu_reward = 0
     draw_reward = []
     draw_step = []
-    draw_step_ten = []
-    draw_reward_ten = []
+    draw_step_all = []
+    draw_reward_all = []
     # Initialize phase k
     for k in range(T):
         t_k = t
@@ -409,12 +409,13 @@ def UCSG(states, actions, T, delta):
         # print('confidencebound1', confidence_bound_1)
         # print('confidencebound2', confidence_bound_2_2)
         confidencebound = [ (tmp[i]) for i in range(0, len(tmp)) if tmp[i] not in tmp[:i] ]
+        confidencebound = np.minimum(confidence_bound_1, confidence_bound_2_2)
         #print('confbound', confidencebound)        
 
         # alpha, gamma
         #Optimistic Planning
         # print('maxminevi')
-        ac = maxminevi(states, actions, 0.01, 0.9, 100, total_rewards, confidence_bound_2_2, st_i)
+        ac = maxminevi(states, actions, 0.01, 0.9, 10000, total_rewards, confidencebound, st_i)
         # print('ac', ac)
 
         #execute policy
@@ -460,20 +461,28 @@ def UCSG(states, actions, T, delta):
             print('step:', k)
             draw_step.append(k)
             draw_reward.append(accu_reward)
-        if(k % 10 == 0):
-            draw_step_ten.append(k)
-            draw_reward_ten.append(accu_reward)
+        draw_step_all.append(k)
+        draw_reward_all.append(accu_reward)
 
     print('accumulate reward:', accu_reward)
 
-    print("steps", draw_step)
-    plt.plot(draw_step,draw_reward)
-    plt.title("UCSG Reward Convergence Rate") # title
-    plt.xlabel("Steps") # y label
-    plt.ylabel("Reward") # x label
-    plt.show()
+    # print("steps", draw_step)
+    # plt.plot(draw_step,draw_reward)
+    # plt.title("UCSG Reward Convergence Rate") # title
+    # plt.xlabel("Steps") # y label
+    # plt.ylabel("Reward") # x label
+    # plt.show()
 
-    plt.plot(draw_step_ten,draw_reward_ten)
+    path = 'ucsg_reward.txt'
+    f = open(path, 'w')
+    lines = []
+    for i in draw_reward_all:
+        lines.append(str(i) + "\n")
+    f.writelines(lines)
+    f.close()
+
+
+    plt.plot(draw_step_all,draw_reward_all)
     plt.title("UCSG Reward Convergence Rate") # title
     plt.xlabel("Steps") # y label
     plt.ylabel("Reward") # x label
@@ -493,11 +502,6 @@ if __name__ == '__main__':
             all_position.append([bins_width[i],bins_height[j]])
     # print('all_position:', all_position)
 
-    # 共有 1294920 種狀態
-    # all_state = list(permutations(all_position,3))
-    # e.g. 第一種狀態:  [[-1.2, -0.5], [-1.2, -0.4], [-1.2, -0.3]]
-    # print(list(all_state[0])) # 原本是tuple 若需陣列則轉為list 
-    # print(all_state)
 
     # states = ['s1', 's2', 's3', 's4', 's5']
     # states = np.zeros(10)
@@ -506,34 +510,45 @@ if __name__ == '__main__':
     for idx in actions_del:
         actions.pop(idx)
 
-    # 5人
-    # oneplayer_actions = football_action_set.get_action_set({'action_set': 'default'})
-    # actions = np.zeros((len(oneplayer_actions)**5, 5))
-    # i = 0
-    # for a1 in range(len(oneplayer_actions)):
-    #     for a2 in range(len(oneplayer_actions)):
-    #         for a3 in range(len(oneplayer_actions)):
-    #             for a4 in range(len(oneplayer_actions)):
-    #                 for a5 in range(len(oneplayer_actions)):
-    #                     actions[i] = [a1, a2, a3, a4, a5]
-    #                     i += 1
 
-    
-    # print(len(all_state))
-    # s = [[-0.6, 0.3], [-1.2, -0.1], [-1.2, -0.5]]
-    # print('id:', find_state_id(all_state, s))
-    # total_numbers = np.zeros((12144, 19, 12144), dtype='float16')
-
-    T = 3000
+    T = 1000
     delta = 0.5
-    # UCSG(states, actions, T, delta)
-    # UCSG(all_state, actions, T, delta)
     UCSG(all_position, actions, T, delta)
 
-    # env = football_env.create_environment(env_name='1_vs_1_easy', representation='raw', render='True',channel_dimensions=(10,15), number_of_left_players_agent_controls=1 , rewards = "easy,scoring")
-    # st = env.reset()
-    # bin_st = simplify(st)
-    # new_st = bin_st[0]
-    # print('n:', new_st)
-    # print('id:', find_state_id(all_position, new_st))
+    # 寫reward
+    # path = 'ucsg_reward.txt'
+    # f = open(path, 'w')
+    # lines = []
+    # for i in range(10):
+    #     lines.append(str(i) + "\n")
+    # f.writelines(lines)
+    # f.close()
+
+    # 讀reward
+    # r = []
+    # with open('ucsg_reward.txt', 'r') as f:
+    #     for line in f:
+    #         r.append(int(float(line.strip('\n'))))
+    # # print(r)
+
+    # cut = []
+    # x = []
+    # for i in range(100000):
+    #     x.append(i)
+    #     if i % 10000 == 0:
+    #         cut.append(i)
+    # rew = []
+    # for i in range(len(r)):
+    #     idx = i // 10000
+    #     if idx != 0:
+    #         rew.append(r[i] - r[cut[idx]])
+    #     else:
+    #         rew.append(r[i])
+
+    # plt.plot(x,r)
+    # plt.title("UCSG Total Reward") # title
+    # plt.xlabel("Steps") # y label
+    # plt.ylabel("Reward") # x label
+    # plt.show()
+
 
