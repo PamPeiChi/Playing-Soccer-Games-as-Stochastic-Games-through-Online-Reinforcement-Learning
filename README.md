@@ -1,191 +1,41 @@
-# Google Research Football
+# Playing Soccer Games as Stochastic Games through Online Reinforcement Learning
+##  研究動機與問題
+強化學習（Reinforcement Learning）指的是agent與環境不斷的互動，並從中學習以取得最大的預期報酬。隨著研究發展，強化學習被應用在許多領域上，包括電子競技，機器人控制，工業自動化。近年來，強化學習在許多電玩遊戲中展現了能與頂尖選手競爭的能力，例如戰勝世界棋王的AlphaGo、 1V1 單挑戰勝《Dota 2》前世界冠軍的OpenAI。  
+調查指出，足球的估計球迷人數為35億，居所有運動之冠，其商業價值更是高達約250億美元 。足球的熱門也帶動了相關產業的發展，例如《FIFA》系列是足球模擬器遊戲的一種，是目前世界上最暢銷的體育電玩遊戲系列。Google團隊在2019年推出了Google Research Football (Kurach et al., 2019)[1]，以熱門足球電玩遊戲為基礎，提供agent在基於物理的3D模擬器下進行足球比賽並學習的環境，其中agent可以控制自己隊伍的一個或所有足球運動員，學習如何在他們之間傳球，並設法克服對手的防守，以求得進球。以Google Research Football 為強化學習環境，本研究將會聚焦在足球賽局的應用，並利用隨機博弈模擬兩支隊伍在球場上的互動。  
+在現實世界中有許多應用皆可以利用多人隨機博弈(multi-agent stochastic game)作為模型，例如選舉、西洋棋與足球。賽局的狀態會因參與者選擇特定行動而獲得相對應的報酬並會影響到下一個隨機狀態，而參與者得到的總報酬常用各階段收益平均值的下極限計算。要在足球遊戲中獲勝需要在每個狀態下做出最有利的決策，例如:球靠近球門時守門員須在正確的位置防守、傳球時的隊伍要有效布局以利進攻等，因此，過程是動態且伴隨著高度不確定性。本研究模型設定為online，意即只控制其中一個隊伍甲，假設隊伍中每一位選手的能力相同，並與對手隊伍乙比賽。模型目標是在可防守的狀況下盡量踢進對方的球門以最大化報酬。  
 
-This repository contains an RL environment based on open-source game Gameplay
-Football. <br> It was created by the Google Brain team for research purposes.
+## 初步研究 
+### 強化學習數學定義
+設定模型 $M\ =(S,A,r,p)$ ，其中 $S$ 為狀態空間， $A$ 為兩個玩家的動作空間， $r$ 為報酬， $p$ 為轉移機率。在時間點 $t$ 時，兩個玩家在狀態 $s_t$，他們採取的動作為 $at=(a^1_t , a^2_t)$ ，學習者獲得的報酬為 $r_t=r(s_t, a^1_t , a^2_t)\ \in[0,\ 1]$ ，由狀態 $s_t$ 到達狀態 $s_{t+1}$ 的轉移機率為 $p(\cdot|\ s_t, a^1_t , a^2_t)$ 。此外，學習者是從策略 $\pi_1$ 取得動作 $a_1$ ，對手是從策略 $\pi_2$ 取得動作 $a_2$ ， $(\pi1,\pi2)$ 可縮寫為 $\pi$ ， $(a_1, a_2)$ 可縮寫為 $a$ 。在遊戲共進行T步下，定義以下報酬與regret: 
+	T步總報酬: $R_T(M,\pi,s)\ =\ \sum_{t=1}^{T}\ r(s_t\ ,a_t)$  
+   平均報酬: $\rho(M,\pi,s)\ =\ {lim\}_{t\rightarrow\infty}\frac{1}{T}$  
+	- 最佳報酬  
+   $\rho^\star(M,s)\ =\ {sup}_{\pi^1}\ {inf}_{\pi^2}{lim}_{t\rightarrow\infty}\frac{1}{T}E[R_T(M,\pi^1,\pi^2,s)]$  
 
-Useful links:
+## 實驗方法與步驟
+本研究以Google Research Football環境(Kurach et al., 2019)模擬遊戲環境，選用USCG(Wei et al., 2017)[4] 實作online演算法，並嘗試分析該演算法效能以檢驗預期結果。因此，實驗步驟可區分為足球學習環境設定、演算法實作及演算法效能分析三大部分。
+### 環境設置及介紹
+利用Google Research Football 3D視覺化的環境(Kurach et al., 2019)模擬足球比賽。此步驟會運用該環境中提供的設定，調整為五對五雙隊伍模式，控制其中一個隊伍的所有球員，學習對抗另一個隊伍。
+環境狀態(state)為action執行後的環境狀態，包含球的位置、球員方位、pixel frame、分數、球員疲憊度等。玩家可採取動作空間(action)有二十種動作選擇，包含八種方向的移動及踢球等。
+在報酬的計算上Kurach等人提供供兩種方式:score與checkpoint。由於遊戲在起初訓練時若只以score(進球才算分)計算報酬會很難給予學習方向，因此checkpoint多增加了其他判斷方式，如球在對手手中時，學習者越靠近球分數越高。
+而環境的輸出則以observation表示，把觀察到的資料(raw observation) 轉化成下列任一種樣式作為input：
+1. Pixels: 1280x720 RGB圖像，包含球員方位小圖及分數 
+2. Super Mini Map: 4個72x96二元矩陣，表示球員與球的位置 
+3. Floats: 115維度的矩陣，打包各種遊戲資訊。
 
-* [Run in Colab](https://colab.research.google.com/github/google-research/football/blob/master/gfootball/colabs/gfootball_example_from_prebuild.ipynb) - start training in less that 2 minutes.
-* [Google Research Football Paper](https://arxiv.org/abs/1907.11180)
-* [GoogleAI blog post](https://ai.googleblog.com/2019/06/introducing-google-research-football.html)
-* [Google Research Football on Cloud](https://towardsdatascience.com/reproducing-google-research-football-rl-results-ac75cf17190e)
-* [GRF Kaggle competition](https://www.kaggle.com/c/google-football) - take part in the competition playing games against others, win prizes and become the GRF Champion!
+### UCSG
+UCSG可以有效降低regret，並保證regret有上界。該演算法無須調整學習率或exploration ratio，可自動達到探索與利用之間的平衡。演算法架構如下:
+<img src="https://i.imgur.com/qO3uvZy.png" width="60%"/>
+![image](https://i.imgur.com/qO3uvZy.png)
+${\hat{p}}_k(s'|s,a)$
+已知的輸入包含狀態空間S，兩個玩家的策略空間A，以及遊戲總步數T。演算法是以階段(phase)為單位，每單位都會進行四大步驟，分別為初始化找出轉移機率，利用轉移機率更新模型集合，再從模型區域中選擇最佳的策略與模型及最後一步執行所選擇之策略。由於是online的設定下，當每個階段達到該階段目標後，方可以進入至下一階段，因此每階段的執行長度也非固定，而是依過往觀測之數據而異。每階段的各個詳細步驟如下：
+1. 依據該phase之前的觀測結果來初始化phase，並估計轉移機率${\hat{p}}_k(s'|s,a)$。
+* $v_k(s,a)$是phase $k$ 時(s,a)出現的次數，將它初始化為0。
+* $n_k(s,a)$是看之前的phase是否有出現過$(s,a)$組合，如果沒看過的話將它設成1，若有則加總過去出現的次數
+* $n_k(s,a,s')$是看之前的phase出現過的結果來預測此phase的下一步，看過去經驗中$(s,a)$的下一步是$s'$的次數有多少次。
+2. 更新信賴區間$P_k(s,a)$，利用第一步結果更新每個轉移機率的信賴區間。$CONF_1$的意義是希望將誤差的平均控制在某個範圍內，$CONF_2$的意義則是希望將誤差的標準控制在某個範圍內，透過信賴區間$P_k(s,a)$，就可以建立出可能的stochastic game model，而真正的model $M$會高機率被包含在其中。
+3. 選擇最佳model $M_k^1$和最佳策略$\pi_k^1$。其中選擇最佳model的方法是從所有可能的model($Mk$集合)利用$Maximin-EVI$選出一個$M_k^1$和$\pi_k^1$，$Maximin-EVI$的方式就是估計選出的model和策略與最佳的model和策略之間要小於一個誤差$\gamma_k$。也就是符合以下式子。
+$\min_{\pi^2}{\rho}\left(M_k^1,\pi_k^1,\pi^2,s\right)\geq\max_{\widetilde{M}\in\mathcal{M}_\mathcal{k}}{\rho^\ast}\left(\widetilde{M},s\right)-\gamma_k$
+4. 執行策略。學習者會執行$\pi_k^1$，並會不斷的去選出這個策略裡面的所有action並觀察他的reward以及下一個$t+1$時間的狀態，由於已經觀察過了，所以把相對應的$v_k(s,a)$次數加1，一直到某個$(s,a)$在這個phase中出現的次數變成2倍為止。演算法中的迴圈總共會執行2n次，因為$v_k(s,a)$一開始初始化為0，且在phase k-1時已經看過n次，phase k也要執行n次才能跳出迴圈，因此總共會變成$n+n=2n$次。
 
-
-We'd like to thank Bastiaan Konings Schuiling, who authored and open-sourced the original version of this game.
-
-
-## Quick Start
-
-### In colab
-
-Open our example [Colab](https://colab.research.google.com/github/google-research/football/blob/master/gfootball/colabs/gfootball_example_from_prebuild.ipynb), that will allow you to start training your model in less than 2 minutes.
-
-This method doesn't support game rendering on screen - if you want to see the game running, please use the method below.
-
-### Using Docker
-
-This is the recommended way for Linux-based systems to avoid incompatible package versions.
-Instructions are available [here](gfootball/doc/docker.md).
-
-### On your computer
-
-#### 1. Install required packages
-#### Linux
-```shell
-sudo apt-get install git cmake build-essential libgl1-mesa-dev libsdl2-dev \
-libsdl2-image-dev libsdl2-ttf-dev libsdl2-gfx-dev libboost-all-dev \
-libdirectfb-dev libst-dev mesa-utils xvfb x11vnc python3-pip
-
-python3 -m pip install --upgrade pip setuptools psutil wheel
-```
-
-#### macOS
-First install [brew](https://brew.sh/). It should automatically install Command Line Tools.
-Next install required packages:
-
-```shell
-brew install git python3 cmake sdl2 sdl2_image sdl2_ttf sdl2_gfx boost boost-python3
-
-python3 -m pip install --upgrade pip setuptools psutil wheel
-```
-
-
-#### Windows
-Install [Git](https://git-scm.com/download/win) and [Python 3](https://www.python.org/downloads/).
-Update pip in the Command Line (here and for the **next steps** type `python` instead of `python3`)
-```commandline
-python -m pip install --upgrade pip setuptools psutil wheel
-```
-
-
-#### 2. Install GFootball
-#### Option a. From PyPi package (recommended)
-```shell
-python3 -m pip install gfootball
-```
-
-#### Option b. Installing from sources using GitHub repository 
-(On Windows you have to install additional tools and set an environment variable, see 
-[Compiling Engine](gfootball/doc/compile_engine.md#windows) for detailed instructions.)
-
-```shell
-git clone https://github.com/google-research/football.git
-cd football
-```
-
-Optionally you can use [virtual environment](https://docs.python.org/3/tutorial/venv.html):
-
-```shell
-python3 -m venv football-env
-source football-env/bin/activate
-```
-
-Next, build the game engine and install dependencies:
-
-```shell
-python3 -m pip install .
-```
-This command can run for a couple of minutes, as it compiles the C++ environment in the background.
-If you face any problems, first check [Compiling Engine](gfootball/doc/compile_engine.md) documentation and search GitHub issues.
-
-
-#### 3. Time to play!
-```shell
-python3 -m gfootball.play_game --action_set=full
-```
-Make sure to check out the [keyboard mappings](#keyboard-mappings).
-To quit the game press Ctrl+C in the terminal.
-
-# Contents #
-
-* [Running training](#training-agents-to-play-GRF)
-* [Playing the game](#playing-the-game)
-    * [Keyboard mappings](#keyboard-mappings)
-    * [Play vs built-in AI](#play-vs-built-in-AI)
-    * [Play vs pre-trained agent](#play-vs-pre-trained-agent)
-    * [Trained checkpoints](#trained-checkpoints)
-* [Environment API](gfootball/doc/api.md)
-* [Observations & Actions](gfootball/doc/observation.md)
-* [Scenarios](gfootball/doc/scenarios.md)
-* [Multi-agent support](gfootball/doc/multi_agent.md)
-* [Running in docker](gfootball/doc/docker.md)
-* [Saving replays, logs, traces](gfootball/doc/saving_replays.md)
-* [Imitation Learning](gfootball/doc/imitation.md)
-
-## Training agents to play GRF
-
-### Run training
-In order to run TF training, you need to install additional dependencies
-
-- Update PIP, so that tensorflow 1.15 is available: `python3 -m pip install --upgrade pip setuptools wheel`
-- TensorFlow: `python3 -m pip install tensorflow==1.15.*` or
-  `python3 -m pip install tensorflow-gpu==1.15.*`, depending on whether you want CPU or
-  GPU version;
-- Sonnet and psutil: `python3 -m pip install dm-sonnet==1.* psutil`;
-- OpenAI Baselines:
-  `python3 -m pip install git+https://github.com/openai/baselines.git@master`.
-
-Then:
-
-- To run example PPO experiment on `academy_empty_goal` scenario, run
-  `python3 -m gfootball.examples.run_ppo2 --level=academy_empty_goal_close`
-- To run on `academy_pass_and_shoot_with_keeper` scenario, run
-  `python3 -m gfootball.examples.run_ppo2 --level=academy_pass_and_shoot_with_keeper`
-
-In order to train with nice replays being saved, run
-`python3 -m gfootball.examples.run_ppo2 --dump_full_episodes=True --render=True`
-
-In order to reproduce PPO results from the paper, please refer to:
-
-- gfootball/examples/repro_checkpoint_easy.sh
-- gfootball/examples/repro_scoring_easy.sh
-
-## Playing the game
-
-Please note that playing the game is implemented through an environment, so human-controlled players use the same interface as the agents.
-One important implication is that there is a single action per 100 ms reported to the environment, which might cause a lag effect when playing.
-
-
-### Keyboard mappings
-The game defines following keyboard mapping (for the `keyboard` player type):
-
-* `ARROW UP` - run to the top.
-* `ARROW DOWN` - run to the bottom.
-* `ARROW LEFT` - run to the left.
-* `ARROW RIGHT` - run to the right.
-* `S` - short pass in the attack mode, pressure in the defense mode.
-* `A` - high pass in the attack mode, sliding in the defense mode.
-* `D` - shot in the attack mode, team pressure in the defense mode.
-* `W` - long pass in the attack mode, goalkeeper pressure in the defense mode.
-* `Q` - switch the active player in the defense mode.
-* `C` - dribble in the attack mode.
-* `E` - sprint.
-
-### Play vs built-in AI
-Run `python3 -m gfootball.play_game --action_set=full`. By default, it starts
-the base scenario and the left player is controlled by the keyboard. Different
-types of players are supported (gamepad, external bots, agents...). For possible
-options run `python3 -m gfootball.play_game -helpfull`.
-
-### Play vs pre-trained agent
-
-In particular, one can play against agent trained with `run_ppo2` script with
-the following command (notice no action_set flag, as PPO agent uses default
-action set):
-`python3 -m gfootball.play_game --players "keyboard:left_players=1;ppo2_cnn:right_players=1,checkpoint=$YOUR_PATH"`
-
-### Trained checkpoints
-We provide trained PPO checkpoints for the following scenarios:
-
-  - [11_vs_11_easy_stochastic](https://storage.googleapis.com/gfootball/11_vs_11_easy_stochastic_v2),
-  - [academy_run_to_score_with_keeper](https://storage.googleapis.com/gfootball/academy_run_to_score_with_keeper_v2).
-
-In order to see the checkpoints playing, run
-`python3 -m gfootball.play_game --players "ppo2_cnn:left_players=1,policy=gfootball_impala_cnn,checkpoint=$CHECKPOINT" --level=$LEVEL`,
-where `$CHECKPOINT` is the path to downloaded checkpoint. Please note that the checkpoints were trained with Tensorflow 1.15 version. Using 
-different Tensorflow version may result in errors. The easiest way to run these checkpoints is through provided `Dockerfile_examples` image.
-See [running in docker](gfootball/doc/docker.md) for details (just override the default Docker definition with `-f Dockerfile_examples` parameter).
-
-In order to train against a checkpoint, you can pass 'extra_players' argument to create_environment function.
-For example extra_players='ppo2_cnn:right_players=1,policy=gfootball_impala_cnn,checkpoint=$CHECKPOINT'.
+	
