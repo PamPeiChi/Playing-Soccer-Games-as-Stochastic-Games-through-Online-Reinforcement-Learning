@@ -46,10 +46,10 @@ UCSG可以有效降低regret，並保證regret有上界。該演算法無須調�
 
 
 ## 實驗過程
-由於硬體的限制，我們對Google Research Football的環境離散化，畫面中的資訊包含球員以及球的位置，以座標的方式儲存。並且只保留必要的action，將action從20個簡化到10個。將實驗設計從五人制足球改為Google Research Football中一對一的設定，即每隊只有一個球員，同時扮演進攻和防守的角色。
-此外，為了讓Google Research Football能夠符合我們的model，我們在reward設計的方面，以Google Research Football中checkpoint的設計為基礎，將能夠得到reward的位置拉大（進球給予1分的位置，其餘給予0.01分的reward）。
-在閱讀論文的過程中，我們在MAXIMIN-EVI這個演算法上面遇到了困難，因為論文的演算法中沒有提到應該如何找policy。最後我們的作法是讓 $\pi\left(s\right)$ 是一個退化的policy。並且針對每一個state s，先選一個能讓value最大的model，再從中挑出一個能讓value最大的action。
-我們使用了3個baseline來分析UCSG的效能，1. 是UCSG VS Nash Q-Learning，2. 是UCSG VS Random，3. 是UCSG VS DDQN。以reward與convergence作為主要評估基準，預期UCSG reward在相同步數下可以超過隨機及傳統MDP的Q-nash演算法與random policy。
+由於硬體的限制，我們對Google Research Football的環境離散化，畫面中的資訊包含球員以及球的位置，以座標的方式儲存。並且只保留必要的action，將action從20個簡化到10個。將實驗設計從五人制足球改為Google Research Football中一對一的設定，即每隊只有一個球員，同時扮演進攻和防守的角色。  
+此外，為了讓Google Research Football能夠符合我們的model，我們在reward設計的方面，以Google Research Football中checkpoint的設計為基礎，將能夠得到reward的位置拉大（進球給予1分的位置，其餘給予0.01分的reward）。  
+在閱讀論文的過程中，我們在MAXIMIN-EVI這個演算法上面遇到了困難，因為論文的演算法中沒有提到應該如何找policy。最後我們的作法是讓 $\pi\left(s\right)$ 是一個退化的policy。並且針對每一個state s，先選一個能讓value最大的model，再從中挑出一個能讓value最大的action。  
+我們使用了3個baseline來分析UCSG的效能，1. 是UCSG VS Nash Q-Learning，2. 是UCSG VS Random，3. 是UCSG VS DDQN。以reward與convergence作為主要評估基準，預期UCSG reward在相同步數下可以超過隨機及傳統MDP的Q-nash演算法與random policy。  
 
 ### 參數設置
 在我們的環境中，UCSG、Nash Q-Learning、Random訓練過程使用的參數設置為：Trajectory（ $T$ ）= 100000，confidence parameter（ $\delta$ ）= 0.5，discount factor（ $\gamma$ ）=0.01，learning rate（ $\alpha$ ）= 0.9。DDQN的參數設置為：Trajectory（ $T$ ）= 100000， discount factor（ $\gamma$ ）=0.05，learning rate（ $\alpha$ ）= 0.01，Network Update = 800 steps。
@@ -58,8 +58,8 @@ UCSG可以有效降低regret，並保證regret有上界。該演算法無須調�
 ### 收斂情況
 
 <img src="https://i.imgur.com/i8GvFp4.png" width="70%"/>
-圖表中的x軸代表步數，共10萬步，y軸代表我方agent獲得的收益。大約在兩萬步後，收益增加的幅度都一樣，代表UCSG會收斂，且可以看到UCSG的收斂有很明顯的規律。
-其他三者收斂情況則不太理想，Nash-Q的收斂圖沒有特別穩定的軌跡，在100,000步內未收斂成功。DDQN 每個episode有相似的頻率趨勢，然而reward都是遞減，只是loss 在測試200,000步之後，每episode最大的loss依然維持在-4左右無法減少。
+圖表中的x軸代表步數，共10萬步，y軸代表我方agent獲得的收益。大約在兩萬步後，收益增加的幅度都一樣，代表UCSG會收斂，且可以看到UCSG的收斂有很明顯的規律。  
+其他三者收斂情況則不太理想，Nash-Q的收斂圖沒有特別穩定的軌跡，在100,000步內未收斂成功。DDQN 每個episode有相似的頻率趨勢，然而reward都是遞減，只是loss 在測試200,000步之後，每episode最大的loss依然維持在-4左右無法減少。  
 
 ### reward差異
 
@@ -71,7 +71,7 @@ UCSG可以有效降低regret，並保證regret有上界。該演算法無須調�
 
 <img src="https://i.imgur.com/6Ah8iE8.png" width="70%"/>
 
-UCSG大約在兩萬步後，reward增加的幅度都一樣，同樣代表著UCSG會收斂。
+UCSG大約在兩萬步後，reward增加的幅度都一樣，同樣代表著UCSG會收斂。  
 Nash-Q 的total reward 逐漸遞增，但是整體而言不比UCSG好。DDQN total reward 逐漸遞減，且遞減的幅度看不出明顯變化。另外也可以觀察到UCSG在相同步數下，獲得的reward遠高於其他三者，且沒有負reward的情況，可以發現UCSG學習效率高於其他三者。
 
 ### 綜合比較
